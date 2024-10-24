@@ -128,13 +128,15 @@ export class GenericContainer implements TestContainer {
   }
 
   private async reuseContainer(client: ContainerRuntimeClient, container: Container) {
-    const inspectResult = await client.container.inspect(container);
-    const mappedInspectResult = mapInspectResult(inspectResult);
-    if (!mappedInspectResult.state.running) {
+    let inspectResult = await client.container.inspect(container);
+    if (!inspectResult.State.Running) {
       log.debug("Reused container is not running, attempting to start it");
       await client.container.start(container);
+      // Refetch the inspect result to get the updated state
+      inspectResult = await client.container.inspect(container);
     }
 
+    const mappedInspectResult = mapInspectResult(inspectResult);
     const boundPorts = BoundPorts.fromInspectResult(client.info.containerRuntime.hostIps, mappedInspectResult).filter(
       this.exposedPorts
     );
