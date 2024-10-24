@@ -7,7 +7,10 @@ export function mapInspectResult(inspectResult: ContainerInspectInfo): InspectRe
   return {
     name: inspectResult.Name,
     hostname: inspectResult.Config.Hostname,
-    ports: mapPorts(inspectResult),
+    ports: {
+      ...mapHostConfigPortBindings(inspectResult),
+      ...mapPorts(inspectResult),
+    },
     healthCheckStatus: mapHealthCheckStatus(inspectResult),
     networkSettings: mapNetworkSettings(inspectResult),
     state: {
@@ -18,6 +21,27 @@ export function mapInspectResult(inspectResult: ContainerInspectInfo): InspectRe
     },
     labels: inspectResult.Config.Labels,
   };
+}
+
+type HostConfigPortBindings = {
+  [port: string]: Array<{
+    HostIp: string;
+    HostPort: string;
+  }>;
+};
+
+function mapHostConfigPortBindings(inspectInfo: ContainerInspectInfo): Ports {
+  return Object.entries(inspectInfo.HostConfig.PortBindings as HostConfigPortBindings)
+    .filter(([, hostPorts]) => hostPorts !== null)
+    .map(([containerPort, hostPorts]) => {
+      return {
+        [parseInt(containerPort)]: hostPorts.map((hostPort) => ({
+          hostIp: hostPort.HostIp,
+          hostPort: parseInt(hostPort.HostPort),
+        })),
+      };
+    })
+    .reduce((acc, curr) => ({ ...acc, ...curr }), {});
 }
 
 function mapPorts(inspectInfo: ContainerInspectInfo): Ports {

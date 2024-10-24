@@ -35,7 +35,6 @@ export class DockerContainerClient implements ContainerClient {
       const containers = await this.dockerode.listContainers({
         limit: 1,
         filters: {
-          status: ["running"],
           label: [`${labelName}=${labelValue}`],
         },
       });
