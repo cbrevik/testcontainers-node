@@ -56,6 +56,7 @@ export class GenericContainer implements TestContainer {
   protected filesToCopy: FileToCopy[] = [];
   protected directoriesToCopy: DirectoryToCopy[] = [];
   protected contentsToCopy: ContentToCopy[] = [];
+  protected removeWhenStopped = true;
 
   constructor(image: string) {
     this.imageName = ImageName.fromString(image);
@@ -145,7 +146,9 @@ export class GenericContainer implements TestContainer {
       inspectResult,
       boundPorts,
       inspectResult.Name,
-      this.waitStrategy
+      this.waitStrategy,
+      this.removeWhenStopped,
+      Boolean(this.hostConfig.AutoRemove)
     );
   }
 
@@ -209,7 +212,9 @@ export class GenericContainer implements TestContainer {
       inspectResult,
       boundPorts,
       inspectResult.Name,
-      this.waitStrategy
+      this.waitStrategy,
+      this.removeWhenStopped,
+      Boolean(this.hostConfig.AutoRemove)
     );
 
     if (this.containerStarted) {
@@ -414,6 +419,7 @@ export class GenericContainer implements TestContainer {
   }
 
   public withReuse(): this {
+    if (this.hostConfig.AutoRemove) throw new Error("Cannot reuse a container that is set to auto remove");
     this.reuse = true;
     return this;
   }
@@ -461,6 +467,17 @@ export class GenericContainer implements TestContainer {
 
   public withLogConsumer(logConsumer: (stream: Readable) => unknown): this {
     this.logConsumer = logConsumer;
+    return this;
+  }
+
+  public withRemoveWhenStopped(removeWhenStopped: boolean): this {
+    this.removeWhenStopped = removeWhenStopped;
+    return this;
+  }
+
+  public withAutoRemove(autoRemove: boolean): this {
+    if (autoRemove && this.reuse) throw new Error("Cannot auto remove a container that is set to reuse");
+    this.hostConfig.AutoRemove = autoRemove;
     return this;
   }
 }
